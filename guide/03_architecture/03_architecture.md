@@ -32,15 +32,26 @@ DDDでは、このドメインの知識を深く理解し、その知識をソ�
 大きなシステムを、一貫したモデルを持つ小さな単位に分割することを**境界づけられたコンテキスト**と呼びます。各コンテキストは、独自のユビキタス言語とドメインモデルを持ちます。
 
 **例：ECサイトの境界づけられたコンテキスト**
-```
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   商品管理      │  │   注文処理      │  │   顧客管理      │
-│   Context      │  │   Context      │  │   Context      │
-│                │  │                │  │                │
-│ - Product      │  │ - Order        │  │ - Customer     │
-│ - Category     │  │ - OrderItem    │  │ - Address      │
-│ - Inventory    │  │ - Payment      │  │ - Preference   │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
+
+```mermaid
+graph TB
+    subgraph "商品管理Context"
+        A[Product]
+        B[Category]
+        C[Inventory]
+    end
+    
+    subgraph "注文処理Context"
+        D[Order]
+        E[OrderItem]
+        F[Payment]
+    end
+    
+    subgraph "顧客管理Context"
+        G[Customer]
+        H[Address]
+        I[Preference]
+    end
 ```
 
 ### 3.2. オニオンアーキテクチャ
@@ -53,30 +64,38 @@ DDDでは、このドメインの知識を深く理解し、その知識をソ�
 
 オニオンアーキテクチャは、以下の4つのレイヤーで構成されます：
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    プレゼンテーション層                      │
-│                (Presentation Layer)                        │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                アプリケーション層                    │   │
-│  │              (Application Layer)                   │   │
-│  │  ┌─────────────────────────────────────────────┐   │   │
-│  │  │              インフラストラクチャ層          │   │   │
-│  │  │           (Infrastructure Layer)           │   │   │
-│  │  │  ┌─────────────────────────────────────┐   │   │   │
-│  │  │  │             ドメイン層              │   │   │   │
-│  │  │  │           (Domain Layer)           │   │   │   │
-│  │  │  │                                     │   │   │   │
-│  │  │  │  ┌─────────────┐ ┌─────────────┐   │   │   │   │
-│  │  │  │  │  Entities   │ │Value Objects│   │   │   │   │
-│  │  │  │  └─────────────┘ └─────────────┘   │   │   │   │
-│  │  │  │  ┌─────────────┐ ┌─────────────┐   │   │   │   │
-│  │  │  │  │ Aggregates  │ │  Services   │   │   │   │   │
-│  │  │  │  └─────────────┘ └─────────────┘   │   │   │   │
-│  │  │  └─────────────────────────────────────┘   │   │   │
-│  │  └─────────────────────────────────────────────┘   │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "プレゼンテーション層"
+        PL[Presentation Layer]
+        PL --> AL
+    end
+    
+    subgraph "アプリケーション層"
+        AL[Application Layer]
+        AL --> DL
+    end
+    
+    subgraph "インフラストラクチャ層"
+        IL[Infrastructure Layer]
+        IL --> DL
+        IL --> AL
+    end
+    
+    subgraph "ドメイン層"
+        DL[Domain Layer]
+        subgraph "Domain Components"
+            E[Entities]
+            VO[Value Objects]
+            AG[Aggregates]
+            DS[Domain Services]
+        end
+    end
+    
+    style DL fill:#e1f5fe
+    style AL fill:#f3e5f5
+    style IL fill:#e8f5e8
+    style PL fill:#fff3e0
 ```
 
 #### 3.2.3. 各レイヤーの役割
@@ -105,9 +124,17 @@ DDDでは、このドメインの知識を深く理解し、その知識をソ�
 
 オニオンアーキテクチャでは、以下の依存関係ルールを厳格に守ります：
 
-```
-内側のレイヤー → 外側のレイヤー（依存関係の方向）
-外側のレイヤー ↛ 内側のレイヤー（禁止）
+```mermaid
+graph LR
+    subgraph "依存関係の方向"
+        A[内側のレイヤー] --> B[外側のレイヤー]
+        C[外側のレイヤー] -.->|禁止| D[内側のレイヤー]
+    end
+    
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#ffebee
+    style D fill:#ffebee
 ```
 
 **具体例：**
@@ -326,15 +353,23 @@ public record UserCreated(
 
 #### 3.6.2. CQRSの構成
 
-```
-┌─────────────────┐    ┌─────────────────┐
-│   コマンド側    │    │    クエリ側     │
-│   (Write)       │    │    (Read)       │
-│                │    │                │
-│ - 正規化モデル  │    │ - 非正規化モデル│
-│ - 整合性重視    │    │ - パフォーマンス│
-│ - トランザクション│  │ - 読み取り最適化│
-└─────────────────┘    └─────────────────┘
+```mermaid
+graph LR
+    subgraph "コマンド側 (Write)"
+        C[正規化モデル]
+        D[整合性重視]
+        E[トランザクション]
+    end
+    
+    subgraph "クエリ側 (Read)"
+        F[非正規化モデル]
+        G[パフォーマンス]
+        H[読み取り最適化]
+    end
+    
+    C --> F
+    D --> G
+    E --> H
 ```
 
 #### 3.6.3. CQRSのメリット
@@ -348,18 +383,34 @@ public record UserCreated(
 #### 3.7.1. 境界づけられたコンテキストの設計
 
 **1. コンテキストマップの作成**
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  商品管理   │    │  注文処理   │    │  顧客管理   │
-│  Context    │    │  Context    │    │  Context    │
-└─────────────┘    └─────────────┘    └─────────────┘
-       │                   │                   │
-       └───────────────────┼───────────────────┘
-                           │
-                    ┌─────────────┐
-                    │  共有Kernel │
-                    │  Context    │
-                    └─────────────┘
+
+```mermaid
+graph TB
+    subgraph "商品管理Context"
+        A[Product]
+        B[Category]
+        C[Inventory]
+    end
+    
+    subgraph "注文処理Context"
+        D[Order]
+        E[OrderItem]
+        F[Payment]
+    end
+    
+    subgraph "顧客管理Context"
+        G[Customer]
+        H[Address]
+        I[Preference]
+    end
+    
+    subgraph "共有Kernel Context"
+        J[Shared Kernel]
+    end
+    
+    A --> J
+    D --> J
+    G --> J
 ```
 
 **2. コンテキスト間の関係**
@@ -377,6 +428,25 @@ public record UserCreated(
 *   適切なサイズ：ビジネスルールに基づいて決定
 
 **2. 集約間の関係**
+
+```mermaid
+graph LR
+    subgraph "集約A"
+        A1[Aggregate Root A]
+        A2[Entity A1]
+        A3[Entity A2]
+    end
+    
+    subgraph "集約B"
+        B1[Aggregate Root B]
+        B2[Entity B1]
+        B3[Entity B2]
+    end
+    
+    A1 -.->|ID参照のみ| B1
+    A2 -.->|直接参照禁止| B2
+```
+
 *   集約間はID参照のみ
 *   直接的なオブジェクト参照は避ける
 *   イベントによる疎結合
