@@ -68,6 +68,288 @@ class UserRestControllerIntegrationSpec extends Specification {
 }
 ```
 
+## ログ出力のテスト
+
+ログ出力の内容を確認するテストは、アプリケーションの動作を追跡し、重要なイベントが正しく記録されているかを検証するために重要です。
+
+### Spring Boot Testでのログキャプチャ
+
+```groovy
+// src/test/groovy/com/example/presentation/LoggingIntegrationSpec.groovy
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.context.TestPropertySource
+import spock.lang.Specification
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
+import org.slf4j.LoggerFactory
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(properties = [
+    "logging.level.com.example=DEBUG",
+    "logging.level.org.springframework.security=DEBUG"
+])
+class LoggingIntegrationSpec extends Specification {
+
+    @Autowired
+    private MockMvc mockMvc
+    
+    @Autowired
+    private ObjectMapper objectMapper
+
+    private ListAppender<ILoggingEvent> listAppender
+    private Logger logger
+
+    def setup() {
+        // ログをキャプチャするためのListAppenderを設定
+        listAppender = new ListAppender<>()
+        listAppender.start()
+        
+        // アプリケーションロガーにListAppenderを追加
+        logger = (Logger) LoggerFactory.getLogger("com.example")
+        logger.addAppender(listAppender)
+    }
+
+    def cleanup() {
+        // テスト後にListAppenderを削除
+        if (logger != null) {
+            logger.detachAppender(listAppender)
+        }
+    }
+
+    def "should log user creation event"() {
+        given: "ユーザー作成リクエスト"
+        def command = new CreateUserCommand("Taro", "Yamada", "taro.yamada@example.com")
+        def requestBody = objectMapper.writeValueAsString(command)
+
+        when: "ユーザー作成APIを呼び出す"
+        mockMvc.perform(post("/api/v1/users")
+                .contentType("application/json")
+                .content(requestBody))
+
+        then: "ユーザー作成のログが出力される"
+        def logEvents = listAppender.list
+        logEvents.any { event ->
+            event.message.contains("User created") && 
+            event.message.contains("taro.yamada@example.com")
+        }
+        
+        and: "ログレベルがINFO以上である"
+        logEvents.any { event ->
+            event.level.isGreaterOrEqual(ch.qos.logback.classic.Level.INFO)
+        }
+    }
+
+    def "should log security events"() {
+        when: "認証なしでAPIにアクセス"
+        mockMvc.perform(post("/api/v1/users")
+                .contentType("application/json")
+                .content("{}"))
+
+        then: "セキュリティ関連のログが出力される"
+        def logEvents = listAppender.list
+        logEvents.any { event ->
+            event.loggerName.contains("security") &&
+            (event.message.contains("Unauthorized") || 
+             event.message.contains("Authentication"))
+        }
+    }
+
+    def "should log database operations"() {
+        given: "ユーザー作成リクエスト"
+        def command = new CreateUserCommand("Jiro", "Sato", "jiro.sato@example.com")
+        def requestBody = objectMapper.writeValueAsString(command)
+
+        when: "ユーザー作成APIを呼び出す"
+        mockMvc.perform(post("/api/v1/users")
+                .contentType("application/json")
+                .content(requestBody))
+
+        then: "データベース操作のログが出力される"
+        def logEvents = listAppender.list
+        logEvents.any { event ->
+            event.loggerName.contains("repository") &&
+            (event.message.contains("save") || 
+             event.message.contains("insert"))
+        }
+    }
+}
+```
+
+### ログ検証のヘルパーメソッド
+
+```groovy
+// src/test/groovy/com/example/test/LoggingTestHelper.groovy
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
+import org.slf4j.LoggerFactory
+import spock.lang.Specification
+
+class LoggingTestHelper extends Specification {
+    
+    protected ListAppender<ILoggingEvent> listAppender
+    protected Logger logger
+    
+    def setupLogging(String loggerName = "com.example") {
+        listAppender = new ListAppender<>()
+        listAppender.start()
+        
+        logger = (Logger) LoggerFactory.getLogger(loggerName)
+        logger.addAppender(listAppender)
+    }
+    
+    def cleanupLogging() {
+        if (logger != null) {
+            logger.detachAppender(listAppender)
+        }
+    }
+    
+    def assertLogContains(String message) {
+        assert listAppender.list.any { event ->
+            event.message.contains(message)
+        }
+    }
+    
+    def assertLogContains(String message, ch.qos.logback.classic.Level level) {
+        assert listAppender.list.any { event ->
+            event.message.contains(message) && event.level == level
+        }
+    }
+    
+    def assertLogCount(int expectedCount) {
+        assert listAppender.list.size() == expectedCount
+    }
+    
+    def getLogEvents() {
+        return listAppender.list
+    }
+    
+    def getLogMessages() {
+        return listAppender.list*.message
+    }
+}
+```
+
+### アプリケーションサービスでのログテスト
+
+```groovy
+// src/test/groovy/com/example/application/UserApplicationServiceLoggingSpec.groovy
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.TestPropertySource
+import spock.lang.Specification
+
+@SpringBootTest
+@TestPropertySource(properties = [
+    "logging.level.com.example.application=DEBUG"
+])
+class UserApplicationServiceLoggingSpec extends LoggingTestHelper {
+
+    @Autowired
+    UserApplicationService userApplicationService
+    
+    @Autowired
+    SpannerUserRepository userRepository
+    
+    def setup() {
+        setupLogging("com.example.application")
+    }
+    
+    def cleanup() {
+        cleanupLogging()
+        userRepository.deleteAll()
+    }
+    
+    def "should log user creation process"() {
+        given: "ユーザー作成コマンド"
+        def command = new CreateUserCommand("Taro", "Yamada", "taro.yamada@example.com")
+        
+        when: "アプリケーションサービスでユーザーを作成"
+        userApplicationService.createUser(command)
+        
+        then: "ユーザー作成プロセスのログが出力される"
+        assertLogContains("Creating user with email: taro.yamada@example.com")
+        assertLogContains("User created successfully")
+        
+        and: "ログレベルが適切である"
+        assertLogContains("User created successfully", ch.qos.logback.classic.Level.INFO)
+    }
+    
+    def "should log validation errors"() {
+        given: "無効なユーザー作成コマンド"
+        def command = new CreateUserCommand("", "", "invalid-email")
+        
+        when: "無効なコマンドでユーザーを作成しようとする"
+        userApplicationService.createUser(command)
+        
+        then: "バリデーションエラーのログが出力される"
+        thrown(ValidationException)
+        assertLogContains("Validation failed")
+        assertLogContains("invalid-email", ch.qos.logback.classic.Level.WARN)
+    }
+    
+    def "should log business rule violations"() {
+        given: "既存のユーザー"
+        def existingCommand = new CreateUserCommand("Taro", "Yamada", "taro.yamada@example.com")
+        userApplicationService.createUser(existingCommand)
+        
+        and: "同じメールアドレスでユーザー作成コマンド"
+        def duplicateCommand = new CreateUserCommand("Jiro", "Sato", "taro.yamada@example.com")
+        
+        when: "重複するメールアドレスでユーザーを作成しようとする"
+        userApplicationService.createUser(duplicateCommand)
+        
+        then: "ビジネスルール違反のログが出力される"
+        thrown(UserAlreadyExistsException)
+        assertLogContains("Business rule violation: User already exists")
+        assertLogContains("taro.yamada@example.com", ch.qos.logback.classic.Level.WARN)
+    }
+}
+```
+
+### ログ設定のテスト
+
+```groovy
+// src/test/resources/application-integrationtest.properties
+# ログテスト用の設定
+logging.level.com.example=DEBUG
+logging.level.org.springframework.security=DEBUG
+logging.level.org.springframework.web=DEBUG
+logging.level.org.springframework.data=DEBUG
+
+# ログパターンの設定
+logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+
+# ファイルログの設定（テスト時は無効）
+logging.file.name=logs/application.log
+logging.file.max-size=10MB
+logging.file.max-history=30
+```
+
+### ログテストのベストプラクティス
+
+1. **ログの分離**: テスト用のログ設定を使用し、他のテストに影響しないようにする
+2. **ログレベルの確認**: 適切なログレベル（INFO、WARN、ERROR）が使用されているかを検証
+3. **メッセージの検証**: 重要なビジネスイベントがログに記録されているかを確認
+4. **パフォーマンス**: ログキャプチャがテストの実行時間に影響しないようにする
+5. **クリーンアップ**: テスト後にログキャプチャを適切にクリーンアップする
+
+### ログテストの利点
+
+- **デバッグ支援**: テスト失敗時にログを確認して問題を特定
+- **監査証跡**: 重要なビジネスイベントが記録されていることを保証
+- **セキュリティ**: セキュリティ関連のイベントが適切にログに記録されることを確認
+- **運用支援**: 本番環境での問題追跡に必要なログが出力されることを保証
+
 ### データベースを含むインテグレーションテスト
 
 ```groovy
