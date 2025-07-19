@@ -5,74 +5,74 @@
 ## 目次
 
 ### 📚 基礎編
-1. [はじめに](./guide/01_introduction.md)
+1. [はじめに](./guide/01_introduction/01_introduction.md)
    - DDDとオニオンアーキテクチャの概要
    - 開発ガイドの構成と学習方法
    - 前提知識と開発環境
 
-2. [開発環境のセットアップ](./guide/02_setup.md)
+2. [開発環境のセットアップ](./guide/02_setup/02_setup.md)
    - 必要なツールとライブラリのインストール
    - プロジェクト構造の設定
    - 開発環境の構築手順
 
-3. [アーキテクチャ概要](./guide/03_architecture.md)
+3. [アーキテクチャ概要](./guide/03_architecture/03_architecture.md)
    - オニオンアーキテクチャの設計原則
    - レイヤー間の依存関係
    - ドメイン駆動設計の戦略的パターン
 
 ### 🏗️ 実装編
-4. [ドメイン層の実装](./guide/04_domain_layer.md)
-   - [ドメイン層の概要](./guide/04_domain_overview.md)
-   - [値オブジェクト](./guide/04_value_object.md)
-   - [エンティティ](./guide/04_entity.md)
-   - [集約](./guide/04_aggregate.md)
-   - [ドメインサービス](./guide/04_domain_service.md)
-   - [リポジトリインターフェース](./guide/04_repository.md)
-   - [ドメインイベント](./guide/04_domain_event.md)
-   - [ファクトリパターン](./guide/04_factory.md)
-   - [ドメイン層のテスト](./guide/04_domain_test.md)
+4. [ドメイン層の実装](./guide/04_domain/04_domain_layer.md)
+   - [ドメイン層の概要](./guide/04_domain/04_domain_overview.md)
+   - [値オブジェクト](./guide/04_domain/04_value_object.md)
+   - [エンティティ](./guide/04_domain/04_entity.md)
+   - [集約](./guide/04_domain/04_aggregate.md)
+   - [ドメインサービス](./guide/04_domain/04_domain_service.md)
+   - [リポジトリインターフェース](./guide/04_domain/04_repository.md)
+   - [ドメインイベント](./guide/04_domain/04_domain_event.md)
+   - [ファクトリパターン](./guide/04_domain/04_factory.md)
+   - [ドメイン層のテスト](./guide/04_domain/04_domain_test.md)
 
-5. [アプリケーション層の実装](./guide/05_application_layer.md)
-   - [アプリケーション層の概要](./guide/05_application_overview.md)
-   - [アプリケーションサービスの実装](./guide/05_application_service.md)
-   - [コマンド・クエリオブジェクト](./guide/05_command_query.md)
-   - [DTO（Data Transfer Object）](./guide/05_dto.md)
-   - [オブジェクトマッピング](./guide/05_mapping.md)
-   - [バリデーション](./guide/05_validation.md)
-   - [例外処理](./guide/05_exception.md)
-   - [アプリケーション層のテスト](./guide/05_application_test.md)
+5. [アプリケーション層の実装](./guide/05_application/05_application_layer.md)
+   - [アプリケーション層の概要](./guide/05_application/05_application_overview.md)
+   - [アプリケーションサービスの実装](./guide/05_application/05_application_service.md)
+   - [コマンド・クエリオブジェクト](./guide/05_application/05_command_query.md)
+   - [DTO（Data Transfer Object）](./guide/05_application/05_dto.md)
+   - [オブジェクトマッピング](./guide/05_application/05_mapping.md)
+   - [バリデーション](./guide/05_application/05_validation.md)
+   - [例外処理](./guide/05_application/05_exception.md)
+   - [アプリケーション層のテスト](./guide/05_application/05_application_test.md)
 
-6. [インフラストラクチャ層の実装](./guide/06_infrastructure_layer.md)
-   - [インフラストラクチャ層の概要](./guide/06_infrastructure_overview.md)
-   - [Google Cloud Spannerとの連携](./guide/06_spanner_integration.md)
-   - [エンティティマッピング](./guide/06_entity_mapping.md)
-   - [RabbitMQメッセージング](./guide/06_rabbitmq_messaging.md)
-   - [非同期処理](./guide/06_async_processing.md)
-   - [キャッシュ戦略](./guide/06_caching.md)
-   - [メトリクスとモニタリング](./guide/06_metrics.md)
-   - [暗号化とセキュリティ](./guide/06_security.md)
-   - [インフラストラクチャ層のテスト](./guide/06_infrastructure_test.md)
+6. [インフラストラクチャ層の実装](./guide/06_infrastructure/06_infrastructure_layer.md)
+   - [インフラストラクチャ層の概要](./guide/06_infrastructure/06_infrastructure_overview.md)
+   - [Google Cloud Spannerとの連携](./guide/06_infrastructure/06_spanner_integration.md)
+   - [エンティティマッピング](./guide/06_infrastructure/06_entity_mapping.md)
+   - [RabbitMQメッセージング](./guide/06_infrastructure/06_rabbitmq_messaging.md)
+   - [非同期処理](./guide/06_infrastructure/06_async_processing.md)
+   - [キャッシュ戦略](./guide/06_infrastructure/06_caching.md)
+   - [メトリクスとモニタリング](./guide/06_infrastructure/06_metrics.md)
+   - [暗号化とセキュリティ](./guide/06_infrastructure/06_security.md)
+   - [インフラストラクチャ層のテスト](./guide/06_infrastructure/06_infrastructure_test.md)
 
-7. [プレゼンテーション層の実装](./guide/07_presentation_layer.md)
-   - [REST APIコントローラの実装](./guide/07_rest_controller.md)
-   - [リクエスト・レスポンスの設計](./guide/07_request_response.md)
-   - [エラーハンドリング](./guide/07_error_handling.md)
-   - [バリデーション](./guide/07_validation.md)
-   - [API文書化](./guide/07_api_documentation.md)
-   - [セキュリティ](./guide/07_security.md)
+7. [プレゼンテーション層の実装](./guide/07_presentation/07_presentation_layer.md)
+   - [REST APIコントローラの実装](./guide/07_presentation/07_rest_controller.md)
+   - [リクエスト・レスポンスの設計](./guide/07_presentation/07_request_response.md)
+   - [エラーハンドリング](./guide/07_presentation/07_error_handling.md)
+   - [バリデーション](./guide/07_presentation/07_validation.md)
+   - [API文書化](./guide/07_presentation/07_api_documentation.md)
+   - [セキュリティ](./guide/07_presentation/07_security.md)
 
 ### 🧪 品質保証編
-8. [テスト](./guide/08_testing.md)
-   - [テスト戦略の概要](./guide/08_testing_overview.md)
-   - [Spockフレームワークの基本](./guide/08_spock_basics.md)
-   - [ユニットテスト](./guide/08_unit_test.md)
-   - [インテグレーションテスト](./guide/08_integration_test.md)
-   - [アーキテクチャテスト](./guide/08_architecture_test.md)
-   - [Testcontainersによるテスト](./guide/08_testcontainers.md)
-   - [テストデータ管理](./guide/08_test_data.md)
+8. [テスト](./guide/08_testing/08_testing.md)
+   - [テスト戦略の概要](./guide/08_testing/08_testing_overview.md)
+   - [Spockフレームワークの基本](./guide/08_testing/08_spock_basics.md)
+   - [ユニットテスト](./guide/08_testing/08_unit_test.md)
+   - [インテグレーションテスト](./guide/08_testing/08_integration_test.md)
+   - [アーキテクチャテスト](./guide/08_testing/08_architecture_test.md)
+   - [Testcontainersによるテスト](./guide/08_testing/08_testcontainers.md)
+   - [テストデータ管理](./guide/08_testing/08_test_data.md)
 
 ### 📖 総括編
-9. [まとめと発展的なトピック](./guide/09_summary.md)
+9. [まとめと発展的なトピック](./guide/09_summary/09_summary.md)
    - 学習内容の振り返り
    - 実践的な開発プロセス
    - 発展的なトピックと今後の学習方向
