@@ -1,266 +1,102 @@
-## 8. テスト
+# 08 テスト
 
 アプリケーションの品質と保守性を高く保つために、テストは不可欠なプロセスです。この章では、Spockフレームワークを中心としたテスト戦略と、ArchUnitによるアーキテクチャの健全性を保つためのテストについて解説します。
 
-### 8.1. Spockを使ったテストの基本
+## 📋 章の構成
 
-SpockはGroovy言語で記述する、表現力豊かで可読性の高いテスティングフレームワークです。BDD（ビヘイビア駆動開発）スタイルでテストを記述できるため、テストの意図が明確になります。
+### 8.1 🎯 テスト戦略の概要
+- [08_testing_overview.md](08_testing_overview.md)
+  - テストピラミッドの理解
+  - 各層でのテスト戦略
+  - テストの自動化と継続的品質保証
+  - テストカバレッジの測定
 
-*   **`given:`**: テストの前提条件（セットアップ）を記述します。
-*   **`when:`**: テスト対象のコードを実行します。
-*   **`then:`**: 実行結果が期待通りであることを検証します。
-*   **`where:`**: パラメータ化テストのデータを提供します。
+### 8.2 🧪 Spockフレームワークの基本
+- [08_spock_basics.md](08_spock_basics.md)
+  - BDDスタイルのテスト記述
+  - given-when-then構造
+  - パラメータ化テスト
+  - モックとスタブの基本
 
-### 8.2. ユニットテストの実装例
+### 8.3 🔬 ユニットテスト
+- [08_unit_test.md](08_unit_test.md)
+  - ドメインオブジェクトのテスト
+  - アプリケーションサービスのテスト
+  - モックとスタブの活用
+  - テストデータの準備
 
-ドメイン層のオブジェクト（エンティティ、値オブジェクト、ドメインサービス）や、アプリケーションサービス内のロジックなどを対象とします。外部依存（データベースや外部API）はモックに置き換えてテストします。
+### 8.4 🔗 インテグレーションテスト
+- [08_integration_test.md](08_integration_test.md)
+  - Spring Boot Testの活用
+  - REST APIエンドポイントのテスト
+  - 認証・認可のテスト
+  - データベース統合テスト
 
-**`User`エンティティのテスト例:**
-```groovy
-// src/test/groovy/com/example/domain/UserSpec.groovy
-import spock.lang.Specification
+### 8.5 🏗️ アーキテクチャテスト
+- [08_architecture_test.md](08_architecture_test.md)
+  - ArchUnitによる依存関係チェック
+  - オニオンアーキテクチャの検証
+  - レイヤー間の境界テスト
+  - 設計原則の検証
 
-class UserSpec extends Specification {
+### 8.6 🐳 Testcontainersによるテスト
+- [08_testcontainers.md](08_testcontainers.md)
+  - Spannerエミュレータの活用
+  - Singleton Container Pattern
+  - 効率的なインテグレーションテスト
+  - 複数コンテナの連携
 
-    def "changeName should update the user's name"() {
-        given:
-        def user = new User("1", "old-name", "test@example.com")
+### 8.7 📊 テストデータ管理
+- [08_test_data.md](08_test_data.md)
+  - テストフィクスチャの設計
+  - テストデータのクリーンアップ
+  - テストの独立性確保
+  - ファクトリパターンの活用
 
-        when:
-        user.changeName("new-name")
+## 🎯 学習のポイント
 
-        then:
-        user.getName() == "new-name"
-    }
-}
-```
+### 1. **テストファーストの考え方**
+- 品質を保証するためのテスト駆動開発
+- リファクタリングの安全性確保
+- 設計の改善とバグの早期発見
 
-### 8.3. インテグレーションテストの実装例 (SpringBootTest)
+### 2. **適切なテストレベル**
+- ユニット、インテグレーション、アーキテクチャテストの使い分け
+- テストピラミッドに基づく戦略
+- 各層でのテスト重点項目
 
-Spring Bootコンテキストをロードして、複数のコンポーネントを連携させたテストを行います。APIエンドポイントの動作確認や、データベース永続化を含めた一連のフローをテストするのに適しています。
+### 3. **テストの保守性**
+- 読みやすく、理解しやすいテストコードの作成
+- テストデータの管理と再利用
+- テストの独立性と実行速度
 
-**`UserRestController`のテスト例:**
-```groovy
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.web.servlet.MockMvc
-import spock.lang.Specification
+### 4. **自動化の重要性**
+- CI/CDパイプラインでの継続的テスト実行
+- テスト結果の可視化とレポート
+- 品質ゲートの設定
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
+## 📚 実装例
 
-@SpringBootTest
-@AutoConfigureMockMvc
-class UserRestControllerIntegrationSpec extends Specification {
+この章では、以下のテストパターンとコンポーネントを実装します：
 
-    @Autowired
-    private MockMvc mockMvc
-    
-    @Autowired
-    private ObjectMapper objectMapper // JSONシリアライズ/デシリアライズ用
+### テストフレームワーク
+- **Spock Framework**: BDDスタイルのテスト記述
+- **Testcontainers**: コンテナベースのテスト環境
+- **ArchUnit**: アーキテクチャテスト
+- **Spring Boot Test**: 統合テスト
 
-    @Autowired
-    private SpannerUserRepository userRepository // DBの状態をセットアップ/検証するために使用
+### テストパターン
+- **ユニットテスト**: ドメインオブジェクト、アプリケーションサービス
+- **インテグレーションテスト**: REST API、データベース、メッセージング
+- **アーキテクチャテスト**: 依存関係、命名規則、設計原則
+- **E2Eテスト**: エンドツーエンドのテストシナリオ
 
-    def cleanup() {
-        userRepository.deleteAll()
-    }
+### テストデータ管理
+- **TestDataFactory**: テストデータのファクトリ
+- **TestDataBuilder**: ビルダーパターンによるテストデータ構築
+- **TestDataCleanup**: テストデータのクリーンアップ
+- **TestDataIsolation**: テストの独立性確保
 
-    @WithMockUser(username = "testuser", roles = ["USER"]) // 認証済みユーザーとしてテストを実行
-    def "POST /api/v1/users should create a new user and return HATEOAS links"() {
-        given:
-        def command = new CreateUserCommand("Taro", "Yamada", "taro.yamada@example.com")
-        def requestBody = objectMapper.writeValueAsString(command)
+## 🔄 次のステップ
 
-        when:
-        def result = mockMvc.perform(post("/api/v1/users")
-                .contentType("application/json")
-                .content(requestBody)
-                .with(csrf())) // CSRFトークンを付与
-
-        then:
-        result.andExpect(status().isCreated())
-              .andExpect(jsonPath('$.fullName', is('Taro Yamada')))
-              .andExpect(jsonPath('$.email', is('taro.yamada@example.com')))
-              .andExpect(jsonPath('$._links.self.href', containsString('/api/v1/users/')))
-    }
-
-    def "GET /api/v1/users/{id} without authentication should return 401 Unauthorized"() {
-        when:
-        def result = mockMvc.perform(get("/api/v1/users/some-id"))
-
-        then:
-        result.andExpect(status().isUnauthorized())
-    }
-}
-```
-このテストでは、`@WithMockUser`を使って認証済みの状態をシミュレートし、リクエストが成功することを検証します。また、認証なしでのアクセスが`401 Unauthorized`で正しく拒否されることもテストしています。`jsonPath`マッチャーを使い、レスポンスボディの内容まで詳細に検証している点も重要です。
-
-### 8.4. ArchUnitによるアーキテクチャテスト (Spock版)
-
-ArchUnitのテストも、ガイド全体の一貫性を保つためにSpock Specificationとして記述できます。
-
-**ArchitectureSpec.groovy:**
-```groovy
-import com.tngtech.archunit.core.domain.JavaClasses
-import com.tngtech.archunit.core.importer.ClassFileImporter
-import com.tngtech.archunit.lang.syntax.ArchRuleDefinition
-import spock.lang.Shared
-import spock.lang.Specification
-
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
-
-class ArchitectureSpec extends Specification {
-
-    @Shared
-    JavaClasses importedClasses = new ClassFileImporter()
-            .withImportOption({ location -> !location.contains("/test/") }) // テストコードを除外
-            .importPackages("com.example.dddspanner")
-
-    def "domain layer should not depend on other layers"() {
-        expect:
-        noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat()
-            .resideInAnyPackage("..application..", "..infrastructure..", "..presentation..")
-            .check(importedClasses)
-    }
-
-    def "application layer should only depend on domain layer"() {
-        expect:
-        ArchRuleDefinition.classes()
-            .that().resideInAPackage("..application..")
-            .should().onlyDependOnClassesThat()
-            .resideInAnyPackage(
-                "..application..", 
-                "..domain..", 
-                "java..", 
-                "org.springframework..",
-                "lombok.." // プロジェクトで使用しているライブラリを適宜追加
-            )
-            .check(importedClasses)
-    }
-
-    def "onion architecture dependency rules should be enforced"() {
-        expect:
-        // プレゼンテーション層はアプリケーション層のみに依存できる
-        def presentationRule = noClasses()
-            .that().resideInAPackage("..presentation..")
-            .should().dependOnClassesThat()
-            .resideInAnyPackage("..domain..", "..infrastructure..")
-        
-        // アプリケーション層はドメイン層以外の層に依存してはいけない
-        def applicationRule = noClasses()
-            .that().resideInAPackage("..application..")
-            .should().dependOnClassesThat()
-            .resideInAnyPackage("..presentation..", "..infrastructure..")
-
-        presentationRule.check(importedClasses)
-        applicationRule.check(importedClasses)
-    }
-}
-```
-オニオンアーキテクチャの依存関係ルールをより厳密に定義し直しています。「内側のレイヤーは外側のレイヤーを知ってはならない」という原則をコードで強制します。
-
-### 8.5. Testcontainersによる効率的なインテグレーションテスト
-
-インフラストラクチャ層、特にリポジトリの実装をテストする際には、実際のデータベースに近い環境で検証することが理想です。Google Cloud Spannerはローカルで動作するエミュレータを提供しており、Testcontainersライブラリと組み合わせることで、インテグレーションテストの際にSpannerエミュレータのDockerコンテナを簡単に管理できます。
-
-これにより、コストをかけずに、オフライン環境でも信頼性の高いインテグレーションテストを実行できます。
-
-#### 8.5.1. 依存関係の追加
-
-`build.gradle`にTestcontainersとSpanner関連のライブラリを追加します。
-
-```groovy
-// build.gradle
-testImplementation 'org.testcontainers:spanner:1.19.7'
-testImplementation 'org.testcontainers:junit-jupiter:1.19.7'
-testImplementation 'com.google.cloud:google-cloud-spanner:6.53.0' // Spannerクライアント
-```
-
-#### 8.5.2. テスト用プロファイルの設定
-
-テスト実行時にエミュレータを使用するように、`src/test/resources/application-test.properties` を作成します。
-
-```properties
-# src/test/resources/application-test.properties
-spring.cloud.gcp.spanner.emulator.enabled=true
-```
-
-#### 8.5.3. Singleton Container Patternの適用
-
-テストスイート全体で単一のコンテナを共有する**Singleton Container Pattern**を適用することで、テストの実行時間を大幅に短縮できます。コンテナの起動はコストが高いため、テストクラスごとに起動するのは非効率です。
-
-**AbstractIntegrationSpec.groovy (Singleton Container):**
-```groovy
-import com.google.cloud.spanner.*
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.SpannerEmulatorContainer
-import org.testcontainers.utility.DockerImageName
-import spock.lang.Shared
-import spock.lang.Specification
-
-import java.nio.file.Files
-import java.nio.file.Paths
-
-abstract class AbstractIntegrationSpec extends Specification {
-
-    @Shared
-    private static SpannerEmulatorContainer spannerEmulator
-
-    // staticイニシャライザでコンテナを一度だけ起動する
-    static {
-        spannerEmulator = new SpannerEmulatorContainer(
-                DockerImageName.parse("gcr.io/cloud-spanner-emulator/emulator:latest"))
-        spannerEmulator.start()
-        
-        // テスト用のDBとテーブルを作成
-        setupDatabase()
-    }
-
-    @DynamicPropertySource
-    static void spannerProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.cloud.gcp.spanner.emulator-host",
-                { -> spannerEmulator.getEmulatorGrpcEndpoint() })
-    }
-
-    private static void setupDatabase() {
-        // ... (DBクライアント設定とDDL実行、内容は変更なし)
-    }
-}
-```
-`@Testcontainers`アノテーションを外し、Groovyの`static`イニシャライザを使ってコンテナをJVMのクラスロード時に一度だけ起動するように変更しました。これにより、この基底クラスを継承する全てのテストで同じコンテナが再利用され、テストスイートの実行が高速になります。
-
-**SpannerUserRepositoryIntegrationSpec.groovy (テスト実装):**
-```groovy
-@SpringBootTest
-@ActiveProfiles("test")
-class SpannerUserRepositoryIntegrationSpec extends AbstractIntegrationSpec {
-    
-    @Autowired
-    private SpannerUserRepository userRepository
-    
-    def "should save and find user by id"() {
-        given:
-        def fullName = new FullName("Test", "User")
-        def email = new Email("test.user@example.com")
-        def user = User.create(fullName, email)
-
-        when:
-        userRepository.save(user)
-        def found = userRepository.findById(user.getId())
-
-        then:
-        found.isPresent()
-        found.get().getId() == user.getId()
-        found.get().getFullName().getFullName() == "Test User"
-    }
-}
-```
-テストクラスは`AbstractIntegrationSpec`を継承するだけで、セットアップ済みのSpannerエミュレータを利用できます。 
+次の章では、これまでの学習内容をまとめ、実践的な開発プロセスについて解説します。アーキテクチャの進化と継続的改善についても触れます。 
