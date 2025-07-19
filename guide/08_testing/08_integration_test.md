@@ -375,11 +375,399 @@ class UserMessagingIntegrationSpec extends Specification {
 }
 ```
 
+## テストの分離とパフォーマンス最適化
+
+### テストプロファイルの活用
+
+```groovy
+// application-integrationtest.properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driver-class-name=org.h2.Driver
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# テスト用の設定
+spring.profiles.active=test
+logging.level.org.springframework.security=DEBUG
+logging.level.com.example=DEBUG
+```
+
+### テストコンテキストのキャッシュ
+
+```groovy
+@SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class UserServiceIntegrationSpec extends Specification {
+    
+    // 各テストメソッド後にコンテキストをクリーンアップ
+    // テスト間の独立性を保証
+}
+```
+
+### テストデータの管理
+
+```groovy
+@SpringBootTest
+@Transactional
+@Rollback
+class UserRepositoryIntegrationSpec extends Specification {
+    
+    @Autowired
+    UserRepository userRepository
+    
+    def "should persist and retrieve user"() {
+        given: "テストユーザー"
+        def user = new User("test@example.com", "Test User")
+        
+        when: "ユーザーを保存"
+        def savedUser = userRepository.save(user)
+        
+        then: "ユーザーが正しく保存される"
+        savedUser.id != null
+        savedUser.email == "test@example.com"
+        
+        when: "保存されたユーザーを検索"
+        def foundUser = userRepository.findById(savedUser.id)
+        
+        then: "ユーザーが正しく検索される"
+        foundUser.isPresent()
+        foundUser.get().email == "test@example.com"
+    }
+}
+```
+
+## セキュリティテストの拡充
+
+### CSRF保護のテスト
+
+```groovy
+@SpringBootTest
+@AutoConfigureMockMvc
+class CsrfIntegrationSpec extends Specification {
+    
+    @Autowired
+    MockMvc mockMvc
+    
+    def "should require CSRF token for state-changing operations"() {
+        given: "ユーザー作成リクエスト"
+        def request = [
+            firstName: "Taro",
+            lastName: "Yamada",
+            email: "taro@example.com"
+        ]
+        
+        when: "CSRFトークンなしでPOSTリクエスト"
+        def result = mockMvc.perform(post("/api/v1/users")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request)))
+        
+        then: "403 Forbiddenが返される"
+        result.andExpect(status().isForbidden())
+        
+        when: "CSRFトークン付きでPOSTリクエスト"
+        def resultWithCsrf = mockMvc.perform(post("/api/v1/users")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
+                .with(csrf()))
+        
+        then: "リクエストが成功する"
+        resultWithCsrf.andExpect(status().isCreated())
+    }
+}
+```
+
+### レート制限のテスト
+
+```groovy
+def "should enforce rate limiting"() {
+    given: "複数のリクエスト"
+    
+    when: "短時間で複数のリクエストを送信"
+    def results = (1..10).collect { i ->
+        mockMvc.perform(get("/api/v1/users"))
+    }
+    
+    then: "一部のリクエストが429 Too Many Requestsを返す"
+    def tooManyRequests = results.count { result ->
+        result.andReturn().response.status == 429
+    }
+    tooManyRequests > 0
+}
+```
+
+## CI/CD統合
+
+### GitHub Actionsでの結合テスト実行
+
+```yaml
+# .github/workflows/integration-tests.yml
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Run integration tests
+        run: ./gradlew integrationTest
+        env:
+          SPRING_PROFILES_ACTIVE: integration-test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: build/test-results/
+```
+
+### テストレポートの生成
+
+```groovy
+// build.gradle
+test {
+    useJUnitPlatform()
+    
+    reports {
+        html.required = true
+        junitXml.required = true
+    }
+    
+    // 結合テスト用のタスク
+    task integrationTest(type: Test) {
+        description = 'Runs integration tests.'
+        group = 'verification'
+        
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        
+        useJUnitPlatform {
+            includeTags 'integration'
+        }
+        
+        shouldRunAfter test
+    }
+}
+```
+
+## テストデータファクトリー
+
+### テストデータの生成
+
+```groovy
+// src/test/groovy/com/example/test/TestDataFactory.groovy
+class TestDataFactory {
+    
+    static User createUser(String email = "test@example.com", String name = "Test User") {
+        return new User(email, name)
+    }
+    
+    static CreateUserCommand createUserCommand(
+        String firstName = "Taro",
+        String lastName = "Yamada",
+        String email = "taro.yamada@example.com"
+    ) {
+        return new CreateUserCommand(firstName, lastName, email)
+    }
+    
+    static List<User> createUsers(int count) {
+        return (1..count).collect { i ->
+            createUser("user${i}@example.com", "User ${i}")
+        }
+    }
+}
+```
+
+### テストデータベースのセットアップ
+
+```groovy
+@SpringBootTest
+@ActiveProfiles("test")
+class DatabaseIntegrationSpec extends Specification {
+    
+    @Autowired
+    UserRepository userRepository
+    
+    @Autowired
+    TestEntityManager entityManager
+    
+    def setup() {
+        // テストデータのセットアップ
+        def users = TestDataFactory.createUsers(5)
+        users.each { user ->
+            entityManager.persist(user)
+        }
+        entityManager.flush()
+    }
+    
+    def cleanup() {
+        // テストデータのクリーンアップ
+        userRepository.deleteAll()
+    }
+    
+    def "should find all users"() {
+        when: "全ユーザーを検索"
+        def users = userRepository.findAll()
+        
+        then: "5人のユーザーが取得される"
+        users.size() == 5
+    }
+}
+```
+
+## パフォーマンステスト
+
+### レスポンス時間のテスト
+
+```groovy
+def "should respond within acceptable time"() {
+    given: "大量のテストデータ"
+    def users = TestDataFactory.createUsers(1000)
+    users.each { user ->
+        userRepository.save(user)
+    }
+    
+    when: "ユーザー一覧を取得"
+    def startTime = System.currentTimeMillis()
+    def result = mockMvc.perform(get("/api/v1/users"))
+    def endTime = System.currentTimeMillis()
+    
+    then: "レスポンスが成功する"
+    result.andExpect(status().isOk())
+    
+    and: "レスポンス時間が500ms以内"
+    (endTime - startTime) < 500
+}
+```
+
+### メモリ使用量のテスト
+
+```groovy
+def "should not cause memory leaks"() {
+    given: "大量のリクエスト"
+    def initialMemory = Runtime.runtime.totalMemory() - Runtime.runtime.freeMemory()
+    
+    when: "100回のリクエストを実行"
+    (1..100).each { i ->
+        mockMvc.perform(get("/api/v1/users"))
+    }
+    
+    then: "メモリ使用量が大幅に増加しない"
+    def finalMemory = Runtime.runtime.totalMemory() - Runtime.runtime.freeMemory()
+    def memoryIncrease = finalMemory - initialMemory
+    memoryIncrease < 10 * 1024 * 1024 // 10MB以下
+}
+```
+
+## エラーハンドリングのテスト
+
+### 例外処理のテスト
+
+```groovy
+def "should handle database connection errors gracefully"() {
+    given: "データベース接続エラーをシミュレート"
+    // データベース接続を切断する処理
+    
+    when: "APIリクエストを実行"
+    def result = mockMvc.perform(get("/api/v1/users"))
+    
+    then: "適切なエラーレスポンスが返される"
+    result.andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath('$.error').exists())
+            .andExpect(jsonPath('$.message').exists())
+}
+```
+
+### バリデーションエラーの詳細テスト
+
+```groovy
+def "should return detailed validation errors"() {
+    given: "無効なリクエスト"
+    def invalidRequest = [
+        firstName: "", // 空文字
+        lastName: "A", // 短すぎる
+        email: "invalid-email" // 無効なメール形式
+    ]
+    
+    when: "バリデーションエラーが発生するリクエスト"
+    def result = mockMvc.perform(post("/api/v1/users")
+            .contentType("application/json")
+            .content(objectMapper.writeValueAsString(invalidRequest))
+            .with(csrf()))
+    
+    then: "詳細なエラー情報が返される"
+    result.andExpect(status().isBadRequest())
+            .andExpect(jsonPath('$.errors').isArray())
+            .andExpect(jsonPath('$.errors[?(@.field == "firstName")].message').value(containsString("空")))
+            .andExpect(jsonPath('$.errors[?(@.field == "lastName")].message').value(containsString("短")))
+            .andExpect(jsonPath('$.errors[?(@.field == "email")].message').value(containsString("メール")))
+}
+```
+
 ## 学習のポイント
 
 1. **実際のコンテキストでのテスト**: Spring Boot Testで実際のアプリケーションコンテキストを使用
 2. **エンドツーエンドの検証**: APIエンドポイントからデータベースまで一連のフローをテスト
 3. **セキュリティの検証**: 認証・認可の動作を実際の環境で確認
 4. **メッセージングの検証**: 非同期処理やイベント発行の動作を確認
+5. **テストの分離**: プロファイルとコンテキスト管理でテスト間の独立性を保証
+6. **パフォーマンス考慮**: レスポンス時間とメモリ使用量の監視
+7. **CI/CD統合**: 自動化されたテスト実行とレポート生成
+8. **エラーハンドリング**: 例外処理とバリデーションエラーの詳細テスト
+
+## ベストプラクティス
+
+### テスト設計の原則
+
+1. **テストの独立性**: 各テストは他のテストに依存しない
+2. **データのクリーンアップ**: テスト後にデータを確実にクリーンアップ
+3. **プロファイル分離**: 結合テスト用の専用プロファイルを使用
+4. **コンテキストキャッシュ**: 適切なコンテキスト管理でパフォーマンスを最適化
+
+### セキュリティテスト
+
+1. **認証・認可の検証**: 各ロールの権限を実際にテスト
+2. **CSRF保護**: 状態変更操作でのCSRFトークン検証
+3. **レート制限**: 過度なリクエストに対する制限の確認
+4. **入力検証**: 悪意のある入力に対する適切な処理
+
+### パフォーマンスとスケーラビリティ
+
+1. **レスポンス時間**: 許容可能な時間内でのレスポンス
+2. **メモリ使用量**: メモリリークの検出と防止
+3. **データベース接続**: 接続プールの適切な管理
+4. **非同期処理**: メッセージングとイベント処理の検証
 
 次のセクションでは、アーキテクチャテストについて詳しく解説します。 
